@@ -1,0 +1,42 @@
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables file
+.env
+*.env
+
+# Virtual environment folders
+env/
+venv/
+.venv/
+
+# macOS system files
+.DS_Store
+
+# Ignore Flask static and templates folders (if generated dynamically)
+static/
+templates/
+
+# Ignore temporary files
+*.log
+*.pot
+*.pyc
+*.swp
+*.tmp
+
+# Docker files (if they don’t need to be in version control)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# System and temporary files
+*.bak
+*.swp
+*.tmp
+Thumbs.db
+
+# Ignore generated files (if applicable)
+*.sqlite3
+*.db
