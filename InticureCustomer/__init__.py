@@ -1391,7 +1391,7 @@ def reschedule_order(appointment_id):
                     "appointment_id":appointment_id,
                     "appointment_date":reschedule_date,
                     "appointment_time":reschedule_time,
-                        
+
                     "user_id": user_id,
                     "doctor_flag":doctor_flag,
                     "doctor_id":""
@@ -2206,6 +2206,7 @@ from datetime import datetime, timedelta
 
 @app.route("/select_time", methods=['GET','POST'])
 def select_time():
+    print('select timeeeeee')
     specialist = request.args.get('s')
     gender = request.args.get('g')
     language = request.args.get('l')
@@ -2271,17 +2272,19 @@ def select_time():
 
     if time_response['response_code'] == 200:
         timeslots=time_response['slots']
-       
         if request.method == 'POST':
-            time=request.form['time']
-            print(time)
-            date=request.form.get('app_date')
-            print(date)
+            print('post')
+            print(request.form)
+            selected_time = request.form.get('time')
+            selected_date = request.form.get('selected_date')
+            
+            print('Selected Time:', selected_time)
+            print('Selected Date:', selected_date)
             payload={
                 "new_user":0,
                 "user_id":user_id,
-                "appointment_date":date,
-                "appointment_time":time,
+                "appointment_date":selected_date,
+                "appointment_time":selected_time,
                 "followup_id":"",
                 "category_id":category_id,
                 "type_booking":"regular",
@@ -2302,7 +2305,12 @@ def select_time():
                 session['new_data']=payload
                 print("payload",session['new_data'])
             return redirect(url_for('new_appointment_preview',invoice_id=0))
-        print(timeslots, time_response['Message'].split(' ')[-2], time_response['no_timeslots'])
+        print('******************#####################*****************')
+        print(timeslots)
+        print(time_response['Message'])
+        print( time_response['Message'].split(' ')[-2])
+        print( time_response['no_timeslots'])
+
         return render_template("select_time.html",timeslots=timeslots, time_response=time_response,dr_response = time_response['no_timeslots'])
     elif time_response['response_code'] == 400:
         time_slots= None
@@ -2356,8 +2364,9 @@ def new_appointment_preview(invoice_id):
     categories=category_resp['data']
 
     for category in categories:
-        if category['id'] == escalated_one_res['data']['category_id']:
-            session['category_title'] = category['title']
+        if (escalated_one_res is not None):
+            if category['id'] == escalated_one_res['data']['category_id']:
+                session['category_title'] = category['title']
 
     if 'category_title' in session:
         category_title = session['category_title']
@@ -2432,6 +2441,12 @@ def new_appointment_preview(invoice_id):
         print('temp_data_id: ',temp_data_id)
         session['appointment_flag'] = 'appointment'
         session['temp_data_id']= temp_data_id
+        if 'customer_email' in session:
+            new_data['email'] = session['customer_email']
+        if 'customer_first_name' in session and 'customer_last_name' in session:
+            new_data['name'] = session['customer_first_name']+' '+session['customer_last_name']
+        if 'loc_id ' in session:
+            new_data['loc_id'] = session['loc_id']
 
         print(session)
 
