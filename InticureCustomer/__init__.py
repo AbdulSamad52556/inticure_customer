@@ -330,7 +330,7 @@ def login():
                     # """" if a banned customer try to access their account """"
             elif otp_generate['response_code'] == 400: 
                 session['err'] = otp_generate['message']
-                flash("Wrong phone number.. Try again","error")
+                flash("Seems like you are not an existing patient. Please click on First Consultation to start your journey with us.")
 
     return render_template("email_login.html")
 
