@@ -296,7 +296,8 @@ def login():
                     # flash("Wrong email.. Try again ","error")
                     err = response_json['message']
                     session['err'] = err
-                    return redirect(url_for('show_error'))
+                    flash("It does not seems like you are an existing patient. Please click on First Consultation to begin your journey with us",'warning')
+                    return redirect(url_for('login'))
         else:
             if len(email) != 10:
                 flash("number must be length of 10 (No need to include any country code)","info")
@@ -330,7 +331,7 @@ def login():
                     # """" if a banned customer try to access their account """"
             elif otp_generate['response_code'] == 400: 
                 session['err'] = otp_generate['message']
-                flash("Seems like you are not an existing patient. Please click on First Consultation to start your journey with us.")
+                flash("Seems like you are not an existing patient. Please click on First Consultation to start your journey with us.",'warning')
 
     return render_template("email_login.html")
 
