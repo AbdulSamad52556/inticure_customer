@@ -316,7 +316,6 @@ def login():
             data={
                 "mobile_num":email,
                 "country":country
-
             }
             api_data=json.dumps(data)
             otp_req=requests.post(base_url+sign_in_otp_api, data=api_data, headers=headers)
@@ -327,8 +326,6 @@ def login():
                 otp=otp_generate['otp']
                 # session['otp']=otp
                 return redirect(url_for('phone_otp'))
-
-                    # """" if a banned customer try to access their account """"
             elif otp_generate['response_code'] == 400: 
                 session['err'] = otp_generate['message']
                 flash("Seems like you are not an existing patient. Please click on First Consultation to start your journey with us.",'warning')
