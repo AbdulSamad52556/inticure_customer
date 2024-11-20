@@ -833,7 +833,7 @@ def orders_list():
             return redirect(url_for('orders_list'))
         if request.form['form_type'] == 'add_payment':
             print('entered into add payment')
-
+    print(appointment_list)
     return render_template('orders_list.html',appointment_list=appointment_list,history_appointment_list=history_appointment_list,
     profile1=profile1,profile2=profile2)
 
@@ -1258,6 +1258,7 @@ def order_details(appointment_id):
         #         print(one_file)
 
         return redirect(url_for("order_details",appointment_id=appointment_id, active_tab=active_tab))
+    print(appointment_details)
     return render_template("order_details.html",appointment_details=appointment_details,follow_ups=follow_ups,
     followup_reminder=followup_reminder,observations=observations,active_tab=active_tab,ndays=ndays)
 
