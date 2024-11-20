@@ -1509,8 +1509,12 @@ def follow_up(appointment_id):
     # if 'user_id' in session:
     #     user_id=session['user_id']
     #     print(user_id)
+    print(session)
     if 'country' in session:
-        country = session['country']
+        if session['country'] == 'United States':
+            country = 'USA'
+        else:
+            country = session['country']
         print('country')
         if (country == 'IN') or (country == 'IND'):
             location_id = 1
