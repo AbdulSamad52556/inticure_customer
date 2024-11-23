@@ -834,6 +834,8 @@ def orders_list():
         if request.form['form_type'] == 'add_payment':
             print('entered into add payment')
     print(appointment_list)
+    print('profile1 ' ,profile1)
+    print('profile2 ',profile2)
     return render_template('orders_list.html',appointment_list=appointment_list,history_appointment_list=history_appointment_list,
     profile1=profile1,profile2=profile2)
 
@@ -1390,7 +1392,7 @@ def reschedule_order(appointment_id):
                     "appointment_id":appointment_id,
                     "appointment_date":reschedule_date,
                     "appointment_time":reschedule_time,
-
+                    "appointment_status":7,
                     "user_id": user_id,
                     "doctor_flag":doctor_flag,
                     "doctor_id":""
