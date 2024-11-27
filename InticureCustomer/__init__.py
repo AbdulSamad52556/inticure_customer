@@ -10,7 +10,7 @@ from pathlib import Path
 app = Flask(__name__)
 
 app.config["SECRET_KEY"]='73f2f6ac5b0555901c28fc2f4322e26a41a6e8e36aba873da6c5b17536da572c'
-
+app.permanent_session_lifetime = timedelta(days=90)
 customer_app_url="customers.inticure.com"
 
 #base url for api
@@ -54,7 +54,7 @@ plans_api="api/administrator/plans_viewset/"
 # doctor list api
 available_doctor_api="api/doctor/doctor_specialization"
 get_location_api = "api/administrator/get-location"
-
+reschedule_check = "api/analysis/reschedule_check"
 # senior doc time slots api
 senior_timeslot_api="api/doctor/specialization_time_slot"
 
@@ -159,6 +159,7 @@ def phone_otp():
 
             user_id = 77    
             session['user_id']=user_id
+            session.permanent = True
             doctor_flag = 0
             session['doctor_flag']=doctor_flag
             print("doc",doctor_flag)
@@ -1261,12 +1262,46 @@ def order_details(appointment_id):
 
         return redirect(url_for("order_details",appointment_id=appointment_id, active_tab=active_tab))
     print(appointment_details)
+    print(session)
     return render_template("order_details.html",appointment_details=appointment_details,follow_ups=follow_ups,
     followup_reminder=followup_reminder,observations=observations,active_tab=active_tab,ndays=ndays)
 
-@app.route("/reschedule/<int:appointment_id>",methods=['GET','POST'])
-def reschedule_order(appointment_id):
+@app.route("/reschedule/<int:appointment_id>/<string:appointment_date>/<string:appointment_time_slot_id>/<string:rescheduled_date>",methods=['GET','POST'])
+def reschedule_order(appointment_id, appointment_date, appointment_time_slot_id, rescheduled_date):
     print(session)
+    headers={   
+        "Content-Type":"application/json"
+        }
+    if rescheduled_date != 'none':
+        flash("You have already rescheduled this appointment once and cannot be rescheduled again.")
+        return redirect(url_for('orders_list'))
+    
+    try:
+        appointment_datetime_str = f"{appointment_date} {appointment_time_slot_id}"
+        appointment_datetime = datetime.strptime(appointment_datetime_str, "%Y-%m-%d %I:%M%p")
+        
+        current_datetime = datetime.now()
+
+        time_difference = appointment_datetime - current_datetime
+
+        if time_difference > timedelta(hours=24):
+            pass
+        else:
+            data={
+            "appointment_id":appointment_id,
+            }
+            api_data=json.dumps(data)
+            reschedule_check_request=requests.post(base_url+reschedule_check,data=api_data,headers=headers)
+            reschedule_check_response=json.loads(reschedule_check_request.text)
+            if reschedule_check_response['response_code'] == 200:
+                pass
+            else:
+                flash(" This appointment cannot be rescheduled. You have to reschedule your appointment at least 24 hours prior to your appointment time.")
+                return redirect(url_for('orders_list'))
+    
+    except ValueError as e:
+        print( f"Invalid date or time format: {e}")
+
     try:
         if 'doctor_flag' in session:
             doctor_flag=session['doctor_flag']
@@ -1286,9 +1321,7 @@ def reschedule_order(appointment_id):
 
         session['appointment_id']=appointment_id
 
-        headers={
-            "Content-Type":"application/json"
-            }
+        
         
         # Appointment details api call
         data={
@@ -2617,6 +2650,10 @@ def payment_success():
     try:
         print("appointment creation")
         print(session)
+        try:
+            payment_gateway = request.args.get('payment_gateway')
+        except:
+            payment_gateway = ""
         headers={
         "Content-Type":"application/json"
         }
@@ -2631,6 +2668,7 @@ def payment_success():
                 new_data=session['new_data']
                 print("preview",new_data)
                 user_id=new_data['user_id']
+                new_data['payment_gateway'] = payment_gateway
                 print("post")
                 api_data=json.dumps(new_data)
                 new_appointment_request=requests.post(base_url+follow_up_api, data=api_data, headers=headers)
@@ -2654,6 +2692,7 @@ def payment_success():
                 follow_up_data=session['follow_up_data']
                 print("preview",follow_up_data)
                 print("post")
+                follow_up_data['payment_gateway'] = payment_gateway
                 api_data=json.dumps(follow_up_data)
                 follow_up_submit=requests.post(base_url+follow_up_api, data=api_data, headers=headers)
                 follow_up_response=json.loads(follow_up_submit.text)
@@ -2690,6 +2729,7 @@ def payment_success():
                 user_id=new_data['user_id']
                 new_data['appointment_id'] = session['appointment_id']
                 print("post")
+                new_data['payment_gateway'] = payment_gateway
                 api_data=json.dumps(new_data)
                 new_appointment_request=requests.post(base_url+follow_up_api, data=api_data, headers=headers)
                 's'
