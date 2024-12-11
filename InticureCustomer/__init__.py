@@ -40,6 +40,7 @@ file_upload_api="api/doctor/common_file/"
 escalated_appointment_api = 'api/doctor/escalated_appointment_list'
 get_escalated = 'api/doctor/escalated_one'
 time_slot_api="api/doctor/available_slots"
+time_slot_api2="api/doctor/available_slots_reschedule"
 followup_reminder_list_api="api/doctor/followup_reminder_list"
 discussion_list_api="api/doctor/discussion_list"
 create_discussion_api="api/doctor/create_discussion"
@@ -288,6 +289,43 @@ def login():
             print(response_json)
 
             if response_json['response_code'] == 200:
+                #storing user id from in session 
+                user_id=response_json['user_id']
+                session['user_id']=user_id
+                #storing doctor flag key from login response in doctor flag variable
+                doctor_flag=0
+                #storing doctor flag variable as doctor flag key in session
+                session['doctor_flag']=doctor_flag
+                print("doc",doctor_flag)
+
+                payload={
+                    "user_id":user_id
+                }
+                api_data=json.dumps(payload)
+                print(api_data)
+                customer_profile_request=requests.post(base_url+customer_profile_api, data=api_data, headers=headers)
+                print(customer_profile_request.status_code)
+                customer_profile_response=json.loads(customer_profile_request.text)
+                print(customer_profile_request.status_code)
+                profile1=customer_profile_response['data1']
+                profile2=customer_profile_response['data2']
+                customer_first_name = profile1['first_name']
+                session['customer_first_name'] = customer_first_name
+                customer_last_name = profile1['last_name']
+                session['customer_last_name'] = customer_last_name
+                customer_email = profile1['email']
+                session['customer_email'] = customer_email
+                print(customer_first_name, customer_last_name)
+                profile_pic=profile2['profile_pic']
+                session['profile_pic'] = profile_pic
+
+
+                return redirect(url_for('orders_list'))
+            else:
+                flash("It does not seems like you are an existing patient. Please click on First Consultation to begin your journey with us",'warning')
+                return redirect(url_for('login_phone'))
+
+            if response_json['response_code'] == 200:
                 otp=response_json['otp']
                 # return render_template('sign_in_email_otp.html',otp=otp)
                 return redirect(url_for('email_otp'))
@@ -355,6 +393,7 @@ def email_otp():
             e_otp=session['otp']
         if request.method == 'POST':
             print('entered into post')
+            print(request.form)
             if email == 'heera@email.com':
                 if request.form['otp'] == '8480':
                     otp = 8480
@@ -566,6 +605,8 @@ def orders_list():
     if 'doctor_flag' in session:
         doctor_flag=session['doctor_flag']
         print(doctor_flag)
+    else:
+        doctor_flag = 0
     # else:
     #     user_id=""
     #     print("no user id")
@@ -600,6 +641,18 @@ def orders_list():
     # escalated_data=json.loads(escalated_response.text)
     # escalated_list=escalated_data['escalated_list']
     appointment_list=appointment_data['data']
+    for i in appointment_list:
+        print('asdfasdf ',i['appointment_id'])
+        data1={
+            "appointment_id":i['appointment_id']   
+            }
+        api_data1=json.dumps(data1)
+        print(api_data1)
+        followup_reminder_request = requests.post(base_url+followup_reminder_list_api, data=api_data1, headers=headers)
+        followup_reminder_response = json.loads(followup_reminder_request.text)
+        print("reminder api",followup_reminder_response['data'])
+        i['followup_reminder'] = followup_reminder_response['data']
+
     # print(escalated_list)
     # print('Data:',escalated_data)
 
@@ -620,7 +673,7 @@ def orders_list():
 
     list_count=len(appointment_list)
     print(list_count)
-
+    
     profile_payload={
             "user_id":user_id
     }
@@ -837,9 +890,13 @@ def orders_list():
     print(appointment_list)
     print('profile1 ' ,profile1)
     print('profile2 ',profile2)
+    now = datetime.now()
     return render_template('orders_list.html',appointment_list=appointment_list,history_appointment_list=history_appointment_list,
-    profile1=profile1,profile2=profile2)
+    profile1=profile1,profile2=profile2,now=now, timedelta=timedelta)
 
+@app.template_filter('strptime')
+def strptime_filter(value, fmt):
+    return datetime.strptime(value, fmt)
 #  DOWNLOAD FILES
 @app.route('/user_download/<int:appointment_id>')
 def user_download(appointment_id):
@@ -1199,9 +1256,7 @@ def order_details(appointment_id):
                                     
                 file_upload_response=json.loads(file_upload_submit.text)
                 print(file_upload_response)
-                if file_upload_response['common_file']:
-                    # delete the  file from the temporary directory
-                    os.remove(os.path.join(str(BASE_DIR) +'/' + 'temp', sourceFileName))
+                
                 print(file_upload_submit.status_code)
                 # ""  Fetching File Path From Response and Passing it to Analysis info API  ""
                 analysis_path=file_upload_response['common_file']
@@ -1225,7 +1280,9 @@ def order_details(appointment_id):
                     flash("Upload success","success")
                 else:
                     flash("Something went wrong..","error")
-
+            if file_upload_response['common_file']:
+                    # delete the  file from the temporary directory
+                    os.remove(os.path.join(str(BASE_DIR) +'/' + 'temp', sourceFileName))
             # print("upload assessment")
             # file_headers={
             #     'files' : 'multipart/form-data'
@@ -1353,7 +1410,8 @@ def reschedule_order(appointment_id, appointment_date, appointment_time_slot_id,
                 "doctor_flag":"senior",
                 "specialization":"",
                 "appointment_id":appointment_id,
-                "location":location
+                "location":location,
+                "regular":'regular'
                 # "appointment_date":date
             }
             api_data=json.dumps(data)
@@ -1402,11 +1460,12 @@ def reschedule_order(appointment_id, appointment_date, appointment_time_slot_id,
                     "gender":"",
                     "doctor":"junior",
                     "appointment_date":"",
-                    "location":location
+                    "location":location,
+                    "appointment_id":appointment_id
                     # "specialization":""
                 }
                 api_data=json.dumps(payload)
-                jr_doc_time=requests.post(base_url+time_slot_api, data=api_data, headers=headers)
+                jr_doc_time=requests.post(base_url+time_slot_api2, data=api_data, headers=headers)
                 print(jr_doc_time.status_code)
                 jr_time=json.loads(jr_doc_time.text)
                 print(jr_time)
@@ -2670,7 +2729,9 @@ def payment_success():
                 user_id=new_data['user_id']
                 new_data['payment_gateway'] = payment_gateway
                 print("post")
+                new_data['followup'] = False
                 api_data=json.dumps(new_data)
+                print('api_data',api_data)
                 new_appointment_request=requests.post(base_url+follow_up_api, data=api_data, headers=headers)
                 's'
                 new_appointment_response=json.loads(new_appointment_request.text)
